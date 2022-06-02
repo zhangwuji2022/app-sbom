@@ -1,6 +1,6 @@
 # 项目名称 <br>
 
-sbom-app<br>
+app-sbom-cve<br>
 
 # 项目描述 <br>
 
