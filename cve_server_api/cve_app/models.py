@@ -131,3 +131,32 @@ class CveIssueTemplate(models.Model):
         unique_together = (('cve_num', 'issue_num'),)
         verbose_name = "cve解析后的数据"
         verbose_name_plural = verbose_name
+
+
+class CveVulnCenter(models.Model):
+    cve_id = models.BigAutoField(primary_key=True)
+    cve_num = models.CharField(max_length=256)
+    cve_level = models.CharField(max_length=32, blank=True, null=True)
+    cve_desc = models.CharField(max_length=8192)
+    cve_status = models.IntegerField()
+    cve_version = models.CharField(max_length=128)
+    repair_time = models.CharField(max_length=32)
+    pack_name = models.CharField(max_length=512)
+    cve_url = models.CharField(max_length=2048)
+    create_time = models.DateTimeField()
+    update_time = models.DateTimeField()
+    delete_time = models.DateTimeField()
+    is_export = models.IntegerField()
+    data_source = models.IntegerField()
+    cve_detail_url = models.CharField(max_length=1024)
+    organizate_id = models.IntegerField()
+    first_per_time = models.CharField(max_length=32)
+    first_get_time = models.CharField(max_length=32)
+    repo_name = models.CharField(max_length=512)
+
+    class Meta:
+        managed = False
+        db_table = 'cve_vuln_center'
+        unique_together = (('cve_num', 'cve_version', 'pack_name', 'organizate_id'),)
+        verbose_name = "cve中心表，cve_origin_upstream与issue关联数据"
+        verbose_name_plural = verbose_name

@@ -21,7 +21,7 @@ def result(code=settings.REQ_SUCCESS, message="", data=None, count=0, kwargs=Non
     :param kwargs:
     :return:
     """
-    json_dict = {"code": code, "message": message, "count": count, "data": data}
+    json_dict = {"code": code, "message": message, "count": count, "data": data if data else []}
     # isinstance(object对象, 类型):判断是否数据xx类型
     if kwargs and isinstance(kwargs, dict) and kwargs.keys():
         json_dict.update(kwargs)
@@ -46,34 +46,41 @@ def params_error(message=""):
     :param message:
     :return:
     """
-    return result(code=settings.PARMMS_ERROR, message=message, data=[])
+    return result(code=settings.PARMMS_ERROR, message=message)
 
 
-def un_auth_error(message="", data=None):
+def un_auth_error(message=""):
     """
     未授权错误
     :param message:
-    :param data:
     :return:
     """
-    return result(code=settings.PERMISSIONS_ERROR, message=message, data=data)
+    return result(code=settings.PERMISSIONS_ERROR, message=message)
 
 
-def method_error(message="", data=None):
+def method_error(message=""):
     """
     请求方法错误
     :param message:
     :param data:
     :return:
     """
-    return result(code=settings.METHOD_ERROR, message=message, data=data)
+    return result(code=settings.METHOD_ERROR, message=message)
 
 
-def server_error(message="", data=None):
+def server_error(message=""):
     """
     服务器内部错误
     :param message:
-    :param data:
     :return:
     """
-    return result(code=settings.SERVER_ERROR, message=message, data=data)
+    return result(code=settings.SERVER_ERROR, message=message)
+
+
+def query_error(message=""):
+    """
+    查询错误
+    :param message:
+    :return:
+    """
+    return result(code=settings.SERVER_ERROR, message=message)
