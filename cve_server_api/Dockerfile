@@ -8,18 +8,18 @@ RUN yum update && \
 
 RUN pip3 install uwsgi
 
-WORKDIR /home/worker/sbom-app/cve_server_api
-COPY . /home/worker/sbom-app/cve_server_api
+WORKDIR /home/worker/app-sbom-cve/cve_server_api
+COPY . /home/worker/app-sbom-cve/cve_server_api
 
 
-RUN cd /home/worker/sbom-app/cve_server_api && pip3 install  -r requirements.txt && sed -i "s/TMMOUT=300/TMOUT=0/g" /etc/bashrc
+RUN cd /home/worker/app-sbom-cve/cve_server_api && pip3 install  -r requirements.txt && sed -i "s/TMMOUT=300/TMOUT=0/g" /etc/bashrc
 
 RUN cp /usr/bin/python3 /usr/bin/python
 ENV LANG=en_US.UTF-8
 
 
 EXPOSE 8100
-CMD ["uwsgi", "--ini", "/home/worker/sbom-app/cve_server_api/uwsgi.ini"]
+CMD ["uwsgi", "--ini", "/home/worker/app-sbom-cve/cve_server_api/uwsgi.ini"]
 
 
 

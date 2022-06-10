@@ -1,7 +1,8 @@
 import json
 import logging
+import re
 
-from common.response_code import params_error, rsp_data
+from common.response_code import params_error, rsp_data, query_error
 from drf_yasg2 import openapi
 from drf_yasg2.utils import swagger_auto_schema
 from packageurl import PackageURL
@@ -9,7 +10,7 @@ from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.views import APIView
 
-from .models import CveOriginUpstream, CveIssueTemplate
+from .models import CveOriginUpstream, CveIssueTemplate, CveVulnCenter
 
 # Create your views here.
 
@@ -82,10 +83,14 @@ class CveOriginUpstreamView(APIView):
             git_packname_param_list.append(git_packname_param)
 
             # 模糊查询：包含 忽略大小写 ilike '%aaa%'
-            cve_origin_upstream_queryset = CveOriginUpstream.objects.filter(
-                git_packname__icontains=git_packname_param,
-                cve_status__in=[0, 1, 2]).order_by("-cve_id")
-            cve_origin_upstream_queryset_list.append(cve_origin_upstream_queryset)
+            try:
+                cve_origin_upstream_queryset = CveOriginUpstream.objects.filter(
+                    git_packname__icontains=git_packname_param,
+                    cve_status__in=[0, 1, 2]).order_by("-cve_id")
+                cve_origin_upstream_queryset_list.append(cve_origin_upstream_queryset)
+            except Exception as e:
+                logger.error(f"cve_origin_upstream--{e}")
+                return query_error(message="查询异常")
 
         for queryset in cve_origin_upstream_queryset_list:
             for row in queryset:
@@ -98,10 +103,13 @@ class CveOriginUpstreamView(APIView):
                     else:
                         cve_num_lst.append(origin_cve_num)
                         break
-
-        cve_issue_template_queryset = CveIssueTemplate.objects.filter(
-            cve_num__in=cve_num_lst, issue_status__in=[1, 3]).order_by("-template_id")
-        cve_issue_template_queryset_list.append(cve_issue_template_queryset)
+        try:
+            cve_issue_template_queryset = CveIssueTemplate.objects.filter(
+                cve_num__in=cve_num_lst, issue_status__in=[1, 3]).order_by("-template_id")
+            cve_issue_template_queryset_list.append(cve_issue_template_queryset)
+        except Exception as e:
+            logger.error(f"cve_issue_template--{e}")
+            return query_error(message="查询异常")
 
         for each_git_packname in git_packname_param_list:
             cve_origin_upstream_git_packname = each_git_packname.split("==")[0]
@@ -118,7 +126,8 @@ class CveOriginUpstreamView(APIView):
                             self.parse_cve_issue_template_owned_version(cve_origin_upstream_version,
                                                                         cve_issue_template_owned_version)) and \
                                 (cve_issue_template_num in cve_num_lst) and \
-                                (cve_issue_template_owned_component.upper() == cve_origin_upstream_git_packname.upper()):
+                                (cve_issue_template_owned_component.upper() ==
+                                 cve_origin_upstream_git_packname.upper()):
 
                             content_dict = {
                                 "cve_num": cve_issue_template_num,  # cve编号
@@ -126,10 +135,22 @@ class CveOriginUpstreamView(APIView):
                                 "version": cve_origin_upstream_version,  # 漏洞归属版本
                                 "issue_id": row_cve_issue_template.issue_id,  # issue的id
                                 "issue_status": row_cve_issue_template.issue_status,  # 1:待分析；3：已分析，待修复
-                                "nvd_score": row_cve_issue_template.nvd_score,  # nvd评分
-                                "nvd_vector": row_cve_issue_template.nvd_vector,  # nvd评分向量
-                                "openeuler_vector": row_cve_issue_template.openeuler_vector,  # openeuler评分向量
-                                "owner": row_cve_issue_template.owner  # 仓库地址
+                                "cvss2_score": row_cve_issue_template.nvd_score,  # cvss2.x评分
+                                # cvss2.x评分向量
+                                "cvss2_vector": f"({row_cve_issue_template.nvd_vector})" if
+                                row_cve_issue_template.nvd_vector else "",
+                                "cvss3_score": row_cve_issue_template.openeuler_score,  # cvss3.x评分
+                                # cvss3.x评分向量
+                                "cvss3_vector": f"CVSS:3.1/{row_cve_issue_template.openeuler_vector}" if
+                                row_cve_issue_template.openeuler_vector else "",
+                                "owner": row_cve_issue_template.owner,  # 仓库地址
+                                "cve_url": self.get_cve_url_by_cve_num(cve_issue_template_num),  # cve_url地址
+                                # 正则匹配purl地址
+                                "purl": [purl_str for purl_str in purl_list if
+                                         re.findall(
+                                             f"={cve_issue_template_owned_component.upper()}"
+                                             f"|{cve_issue_template_owned_component.upper()}@",
+                                             purl_str.upper())][0]
                             }
                             rsp_list.append(content_dict)
                             break
@@ -153,3 +174,15 @@ class CveOriginUpstreamView(APIView):
                 return True
             else:
                 return False
+
+    def get_cve_url_by_cve_num(self, cve_num):
+        """
+        根据cve_num获取 cve_vuln_center 表中的cve_url
+        """
+        try:
+            cve_vuln_center_cve_num_queryset = CveVulnCenter.objects.filter(cve_num=cve_num).order_by("-cve_id")
+            cve_url = cve_vuln_center_cve_num_queryset[0].cve_url if cve_vuln_center_cve_num_queryset[0] else ""
+            return cve_url
+        except Exception as e:
+            logger.error(f"cve_vuln_center--{e}")
+            return ""
