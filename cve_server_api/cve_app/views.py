@@ -133,7 +133,7 @@ class CveOriginUpstreamView(APIView):
                                 "cve_num": cve_issue_template_num,  # cve编号
                                 "owned_component": cve_origin_upstream_git_packname,  # 漏洞归属组件
                                 "version": cve_origin_upstream_version,  # 漏洞归属版本
-                                "issue_id": row_cve_issue_template.issue_id,  # issue的id
+                                "issue_num": row_cve_issue_template.issue_num,  # issue的issue_num
                                 "issue_status": row_cve_issue_template.issue_status,  # 1:待分析；3：已分析，待修复
                                 "cvss2_score": row_cve_issue_template.nvd_score,  # cvss2.x评分
                                 # cvss2.x评分向量
